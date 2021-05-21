@@ -108,6 +108,7 @@ class ExplosionParticles:
 #
 class Game:
     PLAYER_SHAPE = [(0, 6), (-3, -3), (+3, -3)]
+    METEOR_SHAPE = [(-2, 0), (0, -7), (2, 0)]
     BASE_SHAPE = (25, 5)
     PLAYER_SPEED = 90
     PLAYER_COLOR = pyxel.COLOR_PINK
@@ -121,6 +122,7 @@ class Game:
     PLAYER_COL_TYPE = 1
     BASE_COL_TYPE = 2
     FLOOR_COL_TYPE = 3
+    METEOR_COL_TYPE = 4
     MAX_IMPULSE = 30
 
     def __init__(self):
@@ -156,6 +158,20 @@ class Game:
             body_type=Body.STATIC,
         )
 
+        self.meteor = []
+        for _ in range(1000):
+            # Cria meteoros
+            meteor_x = random.randint(-1500, 1500)
+            meteor_y = random.randint(100, 3000)
+            self.meteor.append(self.space.create_poly(
+                self.METEOR_SHAPE,
+                mass=1,
+                moment=2,
+                position= self.player.position + (meteor_x, meteor_y),
+                friction=1.0,
+                collision_type=self.METEOR_COL_TYPE,
+            ))
+
         # Cria chão
         shape = list(self.base.shapes)[0]
         bb = shape.cache_bb()
@@ -168,6 +184,9 @@ class Game:
         )
         self.space.collision_handler(
             self.PLAYER_COL_TYPE, self.FLOOR_COL_TYPE, begin=self.on_collision
+        )
+        self.space.collision_handler(
+            self.PLAYER_COL_TYPE, self.METEOR_COL_TYPE, begin=self.on_collision
         )
 
     def on_collision(self, arb: Arbiter):
@@ -208,6 +227,7 @@ class Game:
                         position=self.player.local_to_world((random.uniform(-2, 2), -3)),
                         velocity=-random.uniform(50, 90) * self.player.rotation_vector.perpendicular(),
                     )
+
         elif self.landed and self.explosion:
             for x in range(-10,10):
                 self.explosion_particles.emmit(
@@ -242,6 +262,9 @@ class Game:
         self.particles.draw(camera)
         self.explosion_particles.draw(camera)
         camera.draw(self.player)
+
+        for meteor in self.meteor:
+            camera.draw(meteor)
 
         if self.landed:
             msg = "PARABENS!" if self.victory else "PERDEU :("
